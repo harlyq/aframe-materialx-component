@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+    <script src="aframe-materialx-component.js"></script>
+  </head>
+  <body>
+    <div style="position:absolute; z-index: 9999">Models from Poly by Google</div>
+    <a-scene background="color: grey">
+      <a-assets>
+        <a-asset-item id="bar" src="assets/bar/Bar.gltf"></a-asset-item>
+        <a-asset-item id="house-obj" src="assets/house/House.obj"></a-asset-item>
+        <a-asset-item id="house-mtl" src="assets/house/House.mtl"></a-asset-item>
+      </a-assets>
+      <a-entity position="0 0 -5" scale="0.2 0.2 0.2" materialx__1="remap: blinn1SG; color: green; wireframe: true" materialx__2="remap: blinn2SG; wireframe: true; color: purple" gltf-model="url(assets/bullet/bullet.gltf)"></a-entity>
+      <a-entity position="5 0 -5" scale="0.2 0.2 0.2" materialx__1="remap: Bar_A_mat; color: orange; wireframe: true" materialx__2="remap: Bar_B_mat; wireframe: true; color: blue" gltf-model="#bar"></a-entity>
+      <a-entity position="-5 0 -5" scale="0.02 0.02 0.02" obj-model="obj: #house-obj; mtl: #house-mtl" materialx="remap: *; wireframe: true"></a-entity>
+    </a-scene>
+  </body>
+</html>
