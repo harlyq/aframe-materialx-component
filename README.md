@@ -9,7 +9,7 @@ If the **remap** is *, then this material will replace all materials in all obje
 Any other **remap** will replace all instances of materials with the same name as **remap**. This is useful for
 changing specific materials within a model.
 
-Demo at https://harlyq.github.io/aframe-proctree-component/
+Demo at https://harlyq.github.io/aframe-materialx-component/
 
 ![Screenshot](assets/screenshot.jpg)
 
