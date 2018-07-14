@@ -228,31 +228,35 @@ function disposeMaterial (material, system) {
  * Replace all materials of a given name with a new material.
  * 
  * @param {object} el - element to replace material on
- * @param {string} name - name of the material to replace, use "*" for all materials or "" for the material of getObject3D("mesh")
+ * @param {string} name - regex of name of the material to replace. use "" for the material from getObject3D("mesh")
  * @param {object} newMaterial - new material to use
  */
-function replaceMaterial (el, name, newMaterial) {
+function replaceMaterial (el, nameGlob, newMaterial) {
   var count = 0;
 
-  if (name === "") {
-    let object3D = el.getObject3D("mesh");
+  if (nameGlob === "") {
+    var object3D = el.getObject3D("mesh");
+
     if (object3D && object3D.material) {
       object3D.material = newMaterial;
       count = 1;
     }
   } else {
-    let object3D = el.object3D;
+    var object3D = el.object3D;
+    var nameRegex = globToRegex(nameGlob);
+    var regex = new RegExp("^" + nameRegex + "$");
+
     if (object3D) {
       object3D.traverse(function (obj) {
         if (obj && obj.material) {
           if (Array.isArray(obj.material)) {
             for (var i = 0, n = obj.material.length; i < n; i++) {
-              if (name === "*" || obj.material[i].name === name) {
+              if (regex.test(obj.material[i].name)) {
                 obj.material[i] = newMaterial;
                 count++;
               }
             }
-          } else if (name === "*" || obj.material.name === name) {
+          } else if (regex.test(obj.material.name)) {
             obj.material = newMaterial;
             count++;
           }
@@ -262,6 +266,10 @@ function replaceMaterial (el, name, newMaterial) {
   }
 
   return count
+}
+
+function globToRegex(glob) {
+  return glob.replace(/[\.\{\}\(\)\^\[\]\$]/g, "\\$&").replace(/[\*\?]/g, ".$&");
 }
 
 })()

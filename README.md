@@ -1,19 +1,15 @@
 # aframe-materialx-component
 
-**materialx** is a drop-in replacement for the **material** component, which adds the ability to **name** and  **remap** materials.  
+**materialx** is a drop-in replacement for the **material** component, which adds the ability to **name** and  **remap** materials. Remapping is useful for changing the materials on imported models.
 
-If the **remap** is empty (the default), then this material will replace the material of the getObject3D("mesh"), which is the standard mesh geometry used within AFrame.
+By default this component applies the material to the object returned by `getObject3D("mesh")` (the standard object used by AFrame).  If **remap** is set then, this material replaces existing materials which have a name matching the **remap**, where `*` is a special character which will match any string (even an empty string), and `?` will match any single character (including no character).
 
-If the **remap** is *, then this material will replace all materials in all objects associated with this entity.
-
-Any other **remap** will replace all instances of materials with the same name as **remap**. This is useful for
-changing specific materials within a model.
-
-Demo at https://harlyq.github.io/aframe-materialx-component/
+[Click for demo](https://harlyq.github.io/aframe-materialx-component/)
 
 ![Screenshot](assets/screenshot.jpg)
 
 ## Example
+
 ```html
 <head>
   <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
@@ -30,4 +26,17 @@ Demo at https://harlyq.github.io/aframe-materialx-component/
 
 **name** - defines the name for this material (*string*) default is ""
 
-**remap** - defines the name of an existing material in a geometry to remap to this material (*string*) default is ""
+**remap** - defines a glob (case sensitive) which matches a name of an existing material in a geometry (*string*) default is ""
+
+## remap examples
+
+`*` - matches any name, including a material without a name
+
+`test*map` - matches *testAABBmap*, *testmap*, *test1map*, but not *TestMap* (incorrect capitilization)
+
+`House?` - matches *House1*, *HouseA*, *House* but fails on *house1* (h when expecting H) or *HouseAA* (two characters after House)
+
+`0.default` - only matches *0.default*
+
+Note: the characters `*` and `?` cannot be matched in a name, use `?` to skip them
+

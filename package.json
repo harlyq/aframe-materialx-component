@@ -1,6 +1,6 @@
 {
   "name": "aframe-materialx-component",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "replacement for aframe material component to name and remap materials",
   "files": ["aframe-materialx-component.js"],
   "repository": {
@@ -9,8 +9,9 @@
   },
   "keywords": [
     "aframe",
-    "aframe-vr",
-    "aframe component"
+    "component",
+    "material",
+    "materialx"
   ],
   "author": "harlyq",
   "license": "MIT",
