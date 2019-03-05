@@ -2,7 +2,7 @@
 
 **materialx** is a drop-in replacement for the **material** component, which adds the ability to **name** and  **remap** materials. Remapping is useful for changing the materials on imported models.
 
-By default this component applies the material to the object returned by `getObject3D("mesh")` (the standard object used by AFrame).  If **remap** is set then, this material replaces existing materials which have a name matching the **remap**, where `*` is a special character which will match any string (even an empty string), and `?` will match any single character (including no character).
+By default this component applies the material to the object returned by `getObject3D("mesh")` (the standard object used by AFrame).  If **remap** is set then, this material replaces existing materials which have a name matching the **remap**. **remap** may include special characters `*` or `?`, where `*` which will match any string (even an empty string), and `?` will match any single character (including no character).
 
 [Click for demo](https://harlyq.github.io/aframe-materialx-component/)
 
@@ -12,7 +12,7 @@ By default this component applies the material to the object returned by `getObj
 
 ```html
 <head>
-  <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/0.9.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-materialx-component@^0.1.0/aframe-materialx-component.js"></script>
 </head>
 <body>

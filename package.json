@@ -1,6 +1,6 @@
 {
   "name": "aframe-materialx-component",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "replacement for aframe material component to name and remap materials",
   "files": ["aframe-materialx-component.js"],
   "repository": {
@@ -20,6 +20,6 @@
   },
   "homepage": "https://github.com/harlyq/aframe-materialx-component#readme",
   "peerDependencies": {
-    "aframe": "^0.8.2"
+    "aframe": "^0.9.0"
   }
 }

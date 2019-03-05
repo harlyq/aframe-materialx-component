@@ -1,4 +1,4 @@
-// modification of the 'material' component from https://aframe.io/releases/0.8.2/aframe.min.js
+// modification of the 'material' component from https://aframe.io/releases/0.9.0/aframe.min.js
 
 (function() {
 
@@ -26,11 +26,12 @@ AFRAME.registerComponent('materialx', {
     opacity: {default: 1.0, min: 0.0, max: 1.0},
     remap: {default: ''},
     repeat: {type: 'vec2', default: {x: 1, y: 1}},
-    shader: {default: 'standard', oneOf: Object.keys(AFRAME.shaders)},
+    shader: {default: 'standard', oneOf: Object.keys(AFRAME.shaders), schemaChange: true},
     side: {default: 'front', oneOf: ['front', 'back', 'double']},
     transparent: {default: false},
     vertexColors: {type: 'string', default: 'none', oneOf: ['face', 'vertex']},
     visible: {default: true},
+    blending: {default: 'normal', oneOf: ['none', 'normal', 'additive', 'subtractive', 'multiply']}
   },
 
   multiple: true,
@@ -55,10 +56,16 @@ AFRAME.registerComponent('materialx', {
   },
 
   updateSchema: function (data) {
-    var newShader = data.shader;
-    var currentShader = this.data && this.data.shader;
-    var shader = newShader || currentShader;
-    var schema = shaders[shader] && shaders[shader].schema;
+    var currentShader;
+    var newShader;
+    var schema;
+    var shader;
+
+    newShader = data && data.shader;
+    currentShader = this.oldData && this.oldData.shader;
+    shader = newShader || currentShader;
+    schema = shaders[shader] && shaders[shader].schema;
+
     if (!schema) { error('Unknown shader schema ' + shader); }
     if (currentShader && newShader === currentShader) { return; }
     this.extendSchema(schema);
@@ -66,28 +73,35 @@ AFRAME.registerComponent('materialx', {
   },
 
   updateBehavior: function () {
+    var key;
+    var sceneEl = this.el.sceneEl;
     var schema = this.schema;
     var self = this;
-    var sceneEl = this.el.sceneEl;
-    var tickProperties = {};
-    var tick = function (time, delta) {
-      Object.keys(tickProperties).forEach(function update (key) {
+    var tickProperties;
+
+    function tickTime (time, delta) {
+      var key;
+      for (key in tickProperties) {
         tickProperties[key] = time;
-      });
+      }
       self.shader.update(tickProperties);
-    };
+    }
+
     this.tick = undefined;
-    Object.keys(schema).forEach(function (key) {
+
+    tickProperties = {};
+    for (key in schema) {
       if (schema[key].type === 'time') {
-        self.tick = tick;
+        this.tick = tickTime;
         tickProperties[key] = true;
       }
-    });
+    }
+
     if (!sceneEl) { return; }
-    if (!this.tick) {
-      sceneEl.removeBehavior(this);
-    } else {
+    if (this.tick) {
       sceneEl.addBehavior(this);
+    } else {
+      sceneEl.removeBehavior(this);
     }
   },
 
@@ -113,6 +127,7 @@ AFRAME.registerComponent('materialx', {
   updateMaterial: function (oldData) {
     var data = this.data;
     var material = this.material;
+    var oldDataHasKeys;
 
     // Base material properties.
     material.alphaTest = data.alphaTest;
@@ -125,9 +140,11 @@ AFRAME.registerComponent('materialx', {
     material.transparent = data.transparent !== false || data.opacity < 1.0;
     material.vertexColors = parseVertexColors(data.vertexColors);
     material.visible = data.visible;
+    material.blending = parseBlending(data.blending);
 
     // Check if material needs update.
-    if (Object.keys(oldData).length &&
+    for (oldDataHasKeys in oldData) { break; }
+    if (oldDataHasKeys &&
         (oldData.alphaTest !== data.alphaTest ||
          oldData.side !== data.side ||
          oldData.vertexColors !== data.vertexColors)) {
@@ -168,13 +185,12 @@ AFRAME.registerComponent('materialx', {
     if (!replaceMaterial(el, remapName, material)) {
 
       el.addEventListener('object3dset', function waitForMesh (evt) {
-        if (evt.target !== el) { return; }
+        if (evt.detail.type !== 'mesh' || evt.target !== el) { return; }
         if (!replaceMaterial(el, remapName, material)) { return; }
         el.removeEventListener('object3dset', waitForMesh);
       });
     }
-  },
-
+  }
 });
 
 /**
@@ -212,6 +228,33 @@ function parseVertexColors (coloring) {
     }
     default: {
       return THREE.NoColors;
+    }
+  }
+}
+
+/**
+ * Return a three.js constant determining blending
+ *
+ * @param {string} [blending=normal]
+ * - `none`, additive`, `subtractive`,`multiply` or `normal`.
+ * @returns {number}
+ */
+function parseBlending (blending) {
+  switch (blending) {
+    case 'none': {
+      return THREE.NoBlending;
+    }
+    case 'additive': {
+      return THREE.AdditiveBlending;
+    }
+    case 'subtractive': {
+      return THREE.SubtractiveBlending;
+    }
+    case 'multiply': {
+      return THREE.MultiplyBlending;
+    }
+    default: {
+      return THREE.NormalBlending;
     }
   }
 }
