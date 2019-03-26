@@ -20,7 +20,7 @@ AFRAME.registerComponent('materialx', {
     depthTest: {default: true},
     depthWrite: {default: true},
     flatShading: {default: false},
-    name: {default: ""},
+    name: {default: ''},
     npot: {default: false},
     offset: {type: 'vec2', default: {x: 0, y: 0}},
     opacity: {default: 1.0, min: 0.0, max: 1.0},
@@ -39,6 +39,7 @@ AFRAME.registerComponent('materialx', {
   init: function () {
     this.system = this.el.sceneEl.systems['material'];
     this.material = null;
+    this.replacedMaterials = [];
   },
 
   /**
@@ -157,10 +158,11 @@ AFRAME.registerComponent('materialx', {
    * Dispose of it from memory and unsubscribe from scene updates.
    */
   remove: function () {
-    var defaultMaterial = new THREE.MeshBasicMaterial();
+    // var defaultMaterial = new THREE.MeshBasicMaterial();
     var material = this.material;
-    replaceMaterial(this.el, this.data.remap, defaultMaterial);
+    replaceMaterial(this.el, this.data.remap, this.replacedMaterials.length > 0 ? this.replacedMaterials : [new THREE.MeshBasicMaterial()]);
     disposeMaterial(material, this.system);
+    this.replacedMaterials.length = 0;
   },
 
   /**
@@ -182,11 +184,13 @@ AFRAME.registerComponent('materialx', {
     system.registerMaterial(material);
 
     // Set on mesh. If mesh does not exist, wait for it.
-    if (!replaceMaterial(el, remapName, material)) {
+    this.replacedMaterials = replaceMaterial(el, remapName, [material])
+    if (this.replacedMaterials.length === 0) {
 
       el.addEventListener('object3dset', function waitForMesh (evt) {
         if (evt.detail.type !== 'mesh' || evt.target !== el) { return; }
-        if (!replaceMaterial(el, remapName, material)) { return; }
+        this.replacedMaterials = replaceMaterial(el, remapName, [material])
+        if (this.replacedMaterials.length === 0) { return; }
         el.removeEventListener('object3dset', waitForMesh);
       });
     }
@@ -271,23 +275,25 @@ function disposeMaterial (material, system) {
  * Replace all materials of a given name with a new material.
  * 
  * @param {object} el - element to replace material on
- * @param {string} name - regex of name of the material to replace. use "" for the material from getObject3D("mesh")
- * @param {object} newMaterial - new material to use
+ * @param {string} nameGlob - regex of name of the material to replace. use '' for the material from getObject3D('mesh')
+ * @param {object} newMaterials - list of materials to use
+ * @returns {object[]} - list of replaced materials
  */
-function replaceMaterial (el, nameGlob, newMaterial) {
-  var count = 0;
+function replaceMaterial (el, nameGlob, newMaterials) {
+  var replacedList = [];
 
-  if (nameGlob === "") {
-    var object3D = el.getObject3D("mesh");
+  if (nameGlob === '') {
+    var object3D = el.getObject3D('mesh');
 
     if (object3D && object3D.material) {
-      object3D.material = newMaterial;
-      count = 1;
+      replacedList.push(object3D.material)
+      object3D.material = newMaterials[0];
     }
   } else {
     var object3D = el.object3D;
     var nameRegex = globToRegex(nameGlob);
-    var regex = new RegExp("^" + nameRegex + "$");
+    var regex = new RegExp('^' + nameRegex + '$');
+    var newIndex = 0
 
     if (object3D) {
       object3D.traverse(function (obj) {
@@ -295,24 +301,26 @@ function replaceMaterial (el, nameGlob, newMaterial) {
           if (Array.isArray(obj.material)) {
             for (var i = 0, n = obj.material.length; i < n; i++) {
               if (regex.test(obj.material[i].name)) {
-                obj.material[i] = newMaterial;
-                count++;
+                replacedList.push(obj.material[i]);
+                obj.material[i] = newMaterials[newIndex];
+                newIndex = (newIndex + 1) % newMaterials.length;
               }
             }
           } else if (regex.test(obj.material.name)) {
-            obj.material = newMaterial;
-            count++;
+            replacedList.push(obj.material);
+            obj.material = newMaterials[newIndex];
+            newIndex = (newIndex + 1) % newMaterials.length;
           }
         }
       })
     }
   }
 
-  return count
+  return replacedList;
 }
 
 function globToRegex(glob) {
-  return glob.replace(/[\.\{\}\(\)\^\[\]\$]/g, "\\$&").replace(/[\*\?]/g, ".$&");
+  return glob.replace(/[\.\{\}\(\)\^\[\]\$]/g, '\\$&').replace(/[\*\?]/g, '.$&');
 }
 
 })()
