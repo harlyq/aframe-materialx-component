@@ -39,7 +39,7 @@ AFRAME.registerComponent('materialx', {
   init: function () {
     this.system = this.el.sceneEl.systems['material'];
     this.material = null;
-    this.replacedMaterials = [];
+    this.oldMaterials = [];
   },
 
   /**
@@ -50,6 +50,8 @@ AFRAME.registerComponent('materialx', {
   update: function (oldData) {
     var data = this.data;
     if (!this.shader || data.shader !== oldData.shader) {
+      // restore old materials, so if we remap again we will remember the originals
+      replaceMaterial(this.el, oldData.remap, this.oldMaterials, []);
       this.updateShader(data.shader);
     }
     this.shader.update(this.data);
@@ -160,9 +162,11 @@ AFRAME.registerComponent('materialx', {
   remove: function () {
     // var defaultMaterial = new THREE.MeshBasicMaterial();
     var material = this.material;
-    replaceMaterial(this.el, this.data.remap, this.replacedMaterials.length > 0 ? this.replacedMaterials : [new THREE.MeshBasicMaterial()]);
+    // var object3D = this.el.getObject3D('mesh');
+    // if (object3D) { object3D.material = defaultMaterial; }
+    replaceMaterial(this.el, this.data.remap, this.oldMaterials, []);
+    this.oldMaterials.length = 0;
     disposeMaterial(material, this.system);
-    this.replacedMaterials.length = 0;
   },
 
   /**
@@ -177,6 +181,8 @@ AFRAME.registerComponent('materialx', {
     var el = this.el;
     var system = this.system;
     var remapName = this.data.remap;
+    var hasMaterials = false;
+    var oldMaterials = this.oldMaterials;
 
     if (this.material) { disposeMaterial(this.material, system); }
 
@@ -184,13 +190,16 @@ AFRAME.registerComponent('materialx', {
     system.registerMaterial(material);
 
     // Set on mesh. If mesh does not exist, wait for it.
-    this.replacedMaterials = replaceMaterial(el, remapName, [material])
-    if (this.replacedMaterials.length === 0) {
-
+    // mesh = el.getObject3D('mesh');
+    // if (mesh) {
+    //   mesh.material = material;
+    // } else {
+    hasMaterials = replaceMaterial(el, remapName, [material], oldMaterials)
+    if (!hasMaterials) {
       el.addEventListener('object3dset', function waitForMesh (evt) {
         if (evt.detail.type !== 'mesh' || evt.target !== el) { return; }
-        this.replacedMaterials = replaceMaterial(el, remapName, [material])
-        if (this.replacedMaterials.length === 0) { return; }
+        // el.getObject3D('mesh').material = material;
+        replaceMaterial(el, remapName, [material], oldMaterials)
         el.removeEventListener('object3dset', waitForMesh);
       });
     }
@@ -277,17 +286,24 @@ function disposeMaterial (material, system) {
  * @param {object} el - element to replace material on
  * @param {string} nameGlob - regex of name of the material to replace. use '' for the material from getObject3D('mesh')
  * @param {object} newMaterials - list of materials to use
+ * @param {object} replacedList - materials that have been replaced
  * @returns {object[]} - list of replaced materials
  */
-function replaceMaterial (el, nameGlob, newMaterials) {
-  var replacedList = [];
+function replaceMaterial (el, nameGlob, newMaterials, outReplacedList) {
+  var hasMaterials = false;
+  outReplacedList.length = 0;
+
+  if (newMaterials.length === 0) {
+    return true
+  }
 
   if (nameGlob === '') {
     var object3D = el.getObject3D('mesh');
 
     if (object3D && object3D.material) {
-      replacedList.push(object3D.material)
+      outReplacedList.push(object3D.material)
       object3D.material = newMaterials[0];
+      hasMaterials = true;
     }
   } else {
     var object3D = el.object3D;
@@ -298,16 +314,18 @@ function replaceMaterial (el, nameGlob, newMaterials) {
     if (object3D) {
       object3D.traverse(function (obj) {
         if (obj && obj.material) {
+          hasMaterials = true;
+
           if (Array.isArray(obj.material)) {
             for (var i = 0, n = obj.material.length; i < n; i++) {
               if (regex.test(obj.material[i].name)) {
-                replacedList.push(obj.material[i]);
+                outReplacedList.push(obj.material[i]);
                 obj.material[i] = newMaterials[newIndex];
                 newIndex = (newIndex + 1) % newMaterials.length;
               }
             }
           } else if (regex.test(obj.material.name)) {
-            replacedList.push(obj.material);
+            outReplacedList.push(obj.material);
             obj.material = newMaterials[newIndex];
             newIndex = (newIndex + 1) % newMaterials.length;
           }
@@ -316,7 +334,7 @@ function replaceMaterial (el, nameGlob, newMaterials) {
     }
   }
 
-  return replacedList;
+  return hasMaterials;
 }
 
 function globToRegex(glob) {
